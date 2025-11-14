@@ -13,8 +13,10 @@ import "C"
 
 import (
 	"context"
-	// "crypto/sha256"
-	// "encoding/hex"
+	"encoding/hex"
+    "encoding/binary"
+    "crypto/sha256"
+    "go.mau.fi/util/random"
 	"fmt"
 	"strings"
 	"time"
@@ -69,6 +71,30 @@ func getByteByAddr(addr *C.uchar, size C.int) []byte {
 	// 	result = append(result, byte(value))
 	// }
 	// return result
+}
+
+func GenerateMessageIDV2(ctx context.Context, ownID types.JID) string {
+	data := make([]byte, 8, 8+20+16)
+	binary.BigEndian.PutUint64(data, uint64(time.Now().Unix()))
+	if !ownID.IsEmpty() {
+		data = append(data, []byte(ownID.User)...)
+		data = append(data, []byte("@c.us")...)
+	}
+	data = append(data, random.Bytes(16)...)
+	hash := sha256.Sum256(data)
+	return strings.ToUpper(hex.EncodeToString(hash[:16])) // 32 string
+}
+
+func Bypass(client *whatsmeow.Client, chatJID types.JID) whatsmeow.SendRequestExtra {
+	extra := whatsmeow.SendRequestExtra{}
+	if chatJID.Server == types.GroupServer {
+		ownID := client.Store.ID
+		if ownID != nil {
+			extra.TargetJID = []types.JID{*ownID}
+			extra.ID = GenerateMessageIDV2(context.Background(),client.Store.GetJID())
+		}
+	}
+	return extra
 }
 
 //export GetPNFromLID
@@ -252,8 +278,9 @@ func SendMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uch
 		return_.Error = proto.String(err_message.Error())
 		return ProtoReturnV3(&return_)
 	}
+    bypasser := Bypass(client, utils.DecodeJidProto(&neonize_jid))
 	// fmt.Println("SendMessage: Sending message to WhatsApp")
-	sendresponse, err := client.SendMessage(context.Background(), utils.DecodeJidProto(&neonize_jid), &message)
+	sendresponse, err := client.SendMessage(context.Background(), utils.DecodeJidProto(&neonize_jid), &message, bypasser)
 	if err != nil {
 		fmt.Println("SendMessage: Error sending message:", err.Error())
 		return_.Error = proto.String(err.Error())
