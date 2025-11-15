@@ -12,33 +12,32 @@ package main
 import "C"
 
 import (
-	"context"
-	"encoding/hex"
+    "context"
+    "encoding/hex"
     "encoding/binary"
     "crypto/sha256"
     "go.mau.fi/util/random"
-	"fmt"
-	"strings"
-	"time"
-	"unsafe"
+    "fmt"
+    "strings"
+    "time"
+    "unsafe"
 
-	"github.com/krypton-byte/neonize/defproto"
-	"github.com/krypton-byte/neonize/utils"
-	_ "github.com/mattn/go-sqlite3"
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/proto/waCompanionReg"
-	"go.mau.fi/whatsmeow/proto/waConsumerApplication"
-	waE2E "go.mau.fi/whatsmeow/proto/waE2E"
-	"go.mau.fi/whatsmeow/proto/waMsgApplication"
-	"go.mau.fi/whatsmeow/store"
-	"go.mau.fi/whatsmeow/store/sqlstore"
-	"go.mau.fi/whatsmeow/types"
-	"go.mau.fi/whatsmeow/types/events"
+    "github.com/krypton-byte/neonize/defproto"
+    "github.com/krypton-byte/neonize/utils"
+    _ "github.com/mattn/go-sqlite3"
+    "go.mau.fi/whatsmeow"
+    "go.mau.fi/whatsmeow/proto/waCompanionReg"
+    "go.mau.fi/whatsmeow/proto/waConsumerApplication"
+    waE2E "go.mau.fi/whatsmeow/proto/waE2E"
+    "go.mau.fi/whatsmeow/proto/waMsgApplication"
+    "go.mau.fi/whatsmeow/store"
+    "go.mau.fi/whatsmeow/store/sqlstore"
+    "go.mau.fi/whatsmeow/types"
+    "go.mau.fi/whatsmeow/types/events"
 
-	_ "github.com/lib/pq"
+    _ "github.com/lib/pq"
 
-	// waLog "go.mau.fi/whatsmeow/util/log"
-	"google.golang.org/protobuf/proto"
+    "google.golang.org/protobuf/proto"
 )
 
 var clients = make(map[string]*whatsmeow.Client)
@@ -278,7 +277,7 @@ func SendMessage(id *C.char, JIDByte *C.uchar, JIDSize C.int, messageByte *C.uch
 		return_.Error = proto.String(err_message.Error())
 		return ProtoReturnV3(&return_)
 	}
-    bypasser := Bypass(client, utils.DecodeJidProto(&neonize_jid))
+	bypasser := Bypass(client, utils.DecodeJidProto(&neonize_jid))
 	// fmt.Println("SendMessage: Sending message to WhatsApp")
 	sendresponse, err := client.SendMessage(context.Background(), utils.DecodeJidProto(&neonize_jid), &message, bypasser)
 	if err != nil {
@@ -1601,13 +1600,13 @@ func SetDefaultDisappearingTimer(id *C.char, timer C.int64_t) *C.char {
 }
 
 //export SetDisappearingTimer
-func SetDisappearingTimer(id *C.char, JIDByte *C.uchar, JIDSize C.int, timer C.int64_t, settingTS C.int64_t) *C.char {
+func SetDisappearingTimer(id *C.char, JIDByte *C.uchar, JIDSize C.int, timer C.int64_t) *C.char {
 	var JID defproto.JID
 	err_ := proto.Unmarshal(getByteByAddr(JIDByte, JIDSize), &JID)
 	if err_ != nil {
 		panic(err_)
 	}
-	err := clients[C.GoString(id)].SetDisappearingTimer(utils.DecodeJidProto(&JID), time.Duration(timer), time.UnixMilli(int64(settingTS)))
+	err := clients[C.GoString(id)].SetDisappearingTimer(utils.DecodeJidProto(&JID), time.Duration(timer), time.Now())
 	if err != nil {
 		return C.CString(err.Error())
 	}
